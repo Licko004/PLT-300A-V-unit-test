@@ -29,7 +29,7 @@ The operator instruction can be divided in to different tasks:
 3. Once **step 2 is done** the operator **confirms the setup, by pressng START/PASS button**
 4. The operator should be focused on the test, check for any visible leaks, which might indicate leaks due to bad setup, or any unexpected noises.
 5. After the **test is done** the operator should **press the PASS button, enough times to enter the main menu of the PLT** after that the operator can **disconnect the V-unit**.
-5. For any FAIL debugging, the operator should refer to the [PLT cloud reports]() automatically published after each test.
+5. For any FAIL debugging, the operator should refer to the [PLT cloud reports](https://dewesoftrealtimebodysense.pltcloud.com/) automatically published after each test.
 ### Setting up V-unit
 The setting up of the V-unit is described here:
 1. The operator connects one end of the air tube to the V-unit
