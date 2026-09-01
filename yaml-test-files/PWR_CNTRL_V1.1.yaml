@@ -1,0 +1,12 @@
+title: "Power control"  
+suite: 
+  - ident: PWR supply enabling   
+    steps: 
+
+      - command: power 5V on
+        title: "Power to MCU enabled"
+      - command: sleepms 1000
+
+      - command: power VARV 16
+        title: "16V power enabled"
+      - command: sleepms 60000

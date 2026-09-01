@@ -1,0 +1,5 @@
+title: "Scan bar code"
+suite:
+- steps:
+  - command: scan ANY
+    extractKey: BARCODE
