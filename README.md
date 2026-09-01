@@ -32,9 +32,9 @@ The operator instruction can be divided in to different tasks:
 5. For any FAIL debugging, the operator should refer to the [PLT cloud reports]() automatically published after each test.
 ### Setting up V-unit
 The setting up of the V-unit is described here:
-2.1 The operator connects one end of the air tube to the V-unit
-2.2 The operator **places the V-unit into its holder** (look at image below for reference)
-2.3 The operator **connects the cable harness to the V-unit** 
-2.4 The operator **pushes the loose end of the air tube into the push-fit connector**.
+1. The operator connects one end of the air tube to the V-unit
+2. The operator **places the V-unit into its holder** (look at image below for reference)
+3. The operator **connects the cable harness to the V-unit** 
+4. The operator **pushes the loose end of the air tube into the push-fit connector**.
 All of the V-unit preparations steps can be better understood, by refering to the image below:
 ![Test setup and placement of connections](https://github.com/Licko004/PLT-300A_V-unit-test/blob/main/images/V-unit-test-setup-MARKED.png)
