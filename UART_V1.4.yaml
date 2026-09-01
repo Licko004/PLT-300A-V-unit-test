@@ -1,0 +1,18 @@
+suite:
+- ident: PWR
+  steps: 
+    - command: power 5V on
+    - command: wait
+      timeout: 2000
+    
+- ident: Uart setup
+  steps: 
+    - command: uartCfg UART1 9600 8N1
+      title: "Configure UART at 9600 baud, 8 data bits, no parity, 1 stop bit"
+    - command: wait
+      timeout: 1000
+
+    - command: uart UART1 noflush
+      expect: "test"
+      retry: 3
+      timeout: 2000

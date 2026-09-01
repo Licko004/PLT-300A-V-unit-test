@@ -1,0 +1,7 @@
+title: "Turning on 3.3 V power rail"
+suite:
+- ident: 3V3_PWR
+  title: "3V3 cntrl"
+  steps:
+  - command: power 3V3 on
+    title: "POWER ENABLED !" 

@@ -1,0 +1,254 @@
+
+title: "V-unit test"
+suite:
+- ident: SCAN
+  title: "Scan QR code" 
+  steps:
+  - command: scan ANY
+    extractKey: SerialNum
+  - command: serial set %SerialNum%
+    retry: 3
+
+- ident: WAIT_FOR_START
+  title: "Waiting for operator"
+  steps:
+  - command: operator "Press start when V-unit is ready for test"
+    title: "Confirm device setup"
+    timeout: 30s
+
+- ident: Sensor_comparison_test
+  steps:
+# 1. Measure voltages on reference and internal sensor ##########################################
+  - command: power 3V3 on
+    title: "Power to DUT enabled !"
+  - command: sleepms 200 #Wait for the PSU to set 3.3V
+  - command: measure voltageDATP07 0-3.3V
+    extractKey: RefSens_raw
+    title: "Measure reference sensor pressure"
+  - command: measure voltageDATP08 0-3.3V
+    extractKey: IntSens_raw
+    title: "Measure internal sensor pressure"
+
+
+# 1.1. Convert the measured data to pressure: ##################################################
+  - command: eval "numeric(RefSens_raw, 'V')"
+    extractKey: RefSens
+    title: "Extract value from measurement reference sensor"
+  - command: eval "(RefSens -2.7)/0.025"
+    extractKey: RefPress
+    title: "Convert reference sensor voltage to pressure"
+  - command: eval "numeric(IntSens_raw, 'V')"
+    extractKey: IntSens
+    title: "Extract value from measurement internal sensor"
+  - command: eval "(IntSens -2.7)/0.025"
+    extractKey: IntPress
+    title: "Convert internal sensor voltage to pressure"
+    
+# 1.2. Compare difference between measurement > 10 % = FAIL: #########################################
+  - command: eval "RefSens/IntSens"
+    extractKey: VoltDiff
+  - command: eval "VoltDiff >= 0.9 && VoltDiff <= 1.1"
+    title: "Output difference <= 10% of reference ?"
+    retry: 2
+    fail: "Sensor ouput difference exceeds 10 %, check V-unit and sensor connection !"   
+
+# 2. POWER rail control for pump, valve and MCU ###################################################
+- ident: POWER_CNTRL
+  steps:
+  - command: power VARV 16
+    title: "16 V power enabled !"
+  - command: sleepms 200 #Wait for power to stabilize
+
+  - command: power 5V on
+    title: "Power to MCU enabled !"
+  - command: sleepms 200
+# MCU test, measure pin output:
+  - command: measure voltageDATP09 0-5.5V
+    extractKey: PinState
+  - command: eval "numeric(PinState, 'V') >= 4.5"
+    fail: "MCU fail, please check internal control MCU and reconnect/change it!"
+
+
+# 3. Reaching set pressure with different pump PWM duty cycle test #################################
+  # 50% Duty cycle
+- ident: VALVE and PUMP control on startup 
+  steps:
+    
+    - command: pin DDTP09 output high
+    - command: wait
+      timeout: 300
+    - command: pin DDTP09 output low
+    
+    - command: pin DDTP11 output high #send signal to MCU to enable pump
+    - command: wait
+      timeout: 100
+
+    - command: pin DDTP10 output high
+    - command: wait
+      timeout: 100
+    - command: pin DDTP10 output low
+      title: "Increment PWM duty (MCU triggered)"
+    - command: wait
+      timeout: 100
+
+- ident: Target pressure reached within time frame test
+  steps:
+    - command: wait
+      timeout: 5000
+    - command: measure voltageDATP07 0-3.3V
+      extractKey: vacuum_raw
+    - command: eval "numeric(vacuum_raw, 'V')
+      extractKey: vacuum_50
+    - command: eval "(vacuum_50-2.7)/0.025"
+      extractKey: curr_press_50
+    - command: eval "curr_press_50 >= -100 && curr_press_50 <= -8"
+      fail: "Target pressure not reached within 30 seconds!"
+
+#3.1 Pressure release sequence after first duty cycle test
+- ident: Pump and valve pressure release cycle
+  steps: 
+
+    - command: pin DDTP11 output low #send signal to turn pump off
+    - command: wait
+      timeout: 100
+
+    # Valve open after pump reaches pressure
+    - command: pin DDTP09 output high
+    - command: wait
+      timeout: 300
+    - command: pin DDTP09 output low
+    # - command: sleepms 300
+
+#3.2 Wait for pressure to release, to continue test and increment duty cycle
+- ident: Wait for pressure to reach ambient
+  steps: 
+    - command: wait
+      timeout: 1000
+    - command: measure voltageDATP07 0-3.3V
+      extractKey: vacuum_raw
+    - command: eval "numeric(vacuum_raw, 'V')
+      extractKey: vacuum_amb_50
+    - command: eval "(vacuum_amb_50-2.7)/0.025"
+      extractKey: curr_press_amb_50
+    - command: eval "((vacuum_amb_50-2.7)/0.025) >= -0.3 && ((vacuum_amb_50-2.7)/0.025) <= 0"
+      fail: "Ambient pressureuum not reached within 30 seconds!"
+
+
+  #3.3 100% Duty cycle
+- ident: VALVE and PUMP control on startup 
+  steps:
+    
+    - command: pin DDTP09 output high
+    - command: wait
+      timeout: 300
+    - command: pin DDTP09 output low
+    
+    - command: pin DDTP11 output high #send signal to MCU to enable pump
+    - command: wait
+      timeout: 100
+
+    - command: pin DDTP10 output high
+    - command: wait
+      timeout: 100
+    - command: pin DDTP10 output low
+      title: "Increment PWM duty (MCU triggered)"
+    - command: wait
+      timeout: 100
+
+- ident: Target pressure reached within time frame test
+  steps:
+    - command: wait
+      timeout: 5000
+    - command: measure voltageDATP07 0-3.3V
+      extractKey: vacuum_raw
+    - command: eval "numeric(vacuum_raw, 'V')
+      extractKey: vacuum_100
+    - command: eval "(vacuum_100-2.7)/0.025"
+      extractKey: curr_press_100
+    - command: eval "curr_press_100 >= -100 && curr_press_100 <= -8"
+      fail: "Target pressure not reached within timeframe!"
+
+#3.4 Release cycle after second pwm duty test
+- ident: Pump and valve pressure release cycle
+  steps: 
+
+    - command: pin DDTP11 output low #send signal to turn pump off
+    - command: wait
+      timeout: 100
+
+    # Valve open after pump reaches pressure
+    - command: pin DDTP09 output high
+    - command: wait
+      timeout: 300
+    - command: pin DDTP09 output low
+    # - command: sleepms 300
+
+# 4. RELEASE TEST, SET pressure to ambient pressure: #############################################################
+- ident: RELEASE TEST
+  steps:
+    - command: measure voltageDATP07 0-3.3V
+      title: "Waiting for pressure to reach ambient"
+      extractKey: press_raw
+    
+    - command: eval "numeric(press_raw, 'V')"
+      extractKey: press
+    - command: eval "(press-2.7)/0.025"
+      extractKey: curr_press
+    - command: eval "curr_press >= -0.3"
+      timeout: 10s
+      fail: "Ambient pressure not reached in 10 seconds, check valve !"
+
+# 7. Leakage test ###############################################################################################
+- ident: LEAKAGE TEST
+  steps:
+    
+    - command: pin DDTP09 output high
+    - command: wait
+      timeout: 300
+    - command: pin DDTP09 output low
+    
+    - command: pin DDTP11 output high #send signal to MCU to enable pump
+    - command: wait
+      timeout: 100
+
+    - command: pin DDTP10 output high
+    - command: wait
+      timeout: 100
+    - command: pin DDTP10 output low
+      title: "Increment PWM duty (MCU triggered)"
+    - command: wait
+      timeout: 100
+
+- ident: Building pressure up for leakage test
+  steps: 
+    - command: wait
+      timeout: 5000
+    - command: measure voltageDATP07 0-3.3V
+      extractKey: vacuum_raw
+    - command: eval "numeric(vacuum_raw, 'V')
+      extractKey: vacuum_leak
+    - command: eval "(vacuum_leak-2.7)/0.025"
+      extractKey: curr_press_leak
+    - command: eval "curr_press_leak >= -100 && curr_press_leak <= -8"
+      fail: "Target pressure not reached within timeframe!"
+
+- ident: Measuring pressure after 5 seconds and comparing to starting pressure
+  steps: 
+    - command: pin DDTP11 output low
+    - command: wait
+      timeout: 100
+
+    - command: wait
+      timeout: 5000
+    - command: measure voltageDATP07 0-3.3V
+      extractKey: LeakVolt_raw
+    - command: eval "numeric(LeakVolt_raw, 'V')"
+      extractKey: LeakVolt
+    - command: eval "(LeakVolt-2.7)/0.025"
+      extractKey: LeakPress
+    - command: eval "LeakPress/curr_press_leak"
+      extractKey: PressDiffLeak
+    - command: eval "PressDiffLeak >= 0.9 && PressDiffLeak <= 1.1"
+      fail: "Pressure difference is bigger than 10%, check for possible leaks!"
+
+

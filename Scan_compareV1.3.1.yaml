@@ -1,0 +1,66 @@
+title: "V-unit test"
+suite:
+- ident: SCAN
+  title: "Scan QR code" 
+  steps:
+  - command: scan ANY
+    extractKey: SerialNum
+  - command: serial set %SerialNum%
+    retry: 3
+
+- ident: WAIT_FOR_START
+  title: "Waiting for operator"
+  steps:
+  - command: operator "Press start when V-unit is ready for test"
+    title: "Confirm device setup"
+    timeout: 30s
+
+- ident: Sensor_test
+  steps:
+# 1. Measure voltages on reference and internal sensor
+  - command: power 3V3 on
+    title: "Power to DUT enabled !"
+  - command: sleepms 1000 #Wait for the PSU to set 3.3V
+  - command: measure voltageDATP07 0-3.3V
+    extractKey: RefSens_raw
+    title: "Measure reference sensor pressure"
+  - command: measure voltageDATP08 0-3.3V
+    extractKey: IntSens_raw
+    title: "Measure internal sensor pressure"
+
+
+# 2. Convert the measured data to pressure:
+  - command: eval "numeric(RefSens_raw, 'V')"
+    extractKey: RefSens
+    title: "Extract value from measurement reference sensor"
+  - command: eval "(RefSens -2.7)/0.25"
+    extractKey: RefPress
+    title: "Convert reference sensor voltage to pressure"
+  - command: eval "numeric(IntSens_raw, 'V')"
+    extractKey: IntSens
+    title: "Extract value from measurement internal sensor"
+  - command: eval "(IntSens -2.7)/0.25"
+    extractKey: IntPress
+    title: "Convert internal sensor voltage to pressure"
+    
+# 3. Compare difference between measurement > 10 % = FAIL:
+  - command: eval "RefSens/IntSens"
+    extractKey: VoltDiff
+  - command: eval "VoltDiff >= 0.9 && VoltDiff <= 1.1"
+    title: "Pressure difference <= 10% of reference ?"
+    retry: 2
+    fail: "Pressure difference exceeds 10 %, check V-unit and sensor connection !"   
+
+# 4. Open and close valve on V-unit
+- ident: VALVE_CNTRL
+  steps:
+  - command: power VARV 16
+    title: "16 V power enabled !"
+  - command: sleepms 500 #Wait for power to stabilize
+  - command: pin DDTP09 ouput high
+    title: "Setting valve to open"
+  - command: sleepms 1000
+  - command: pin DDTP09 output low
+    title: "Closing valve"
+
+
